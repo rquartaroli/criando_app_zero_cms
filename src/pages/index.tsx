@@ -1,14 +1,13 @@
 import { GetStaticProps } from 'next';
-import { FiCalendar, FiUser } from "react-icons/fi";
+import { FiCalendar, FiUser } from 'react-icons/fi';
 import Prismic from '@prismicio/client';
+import { useState, useEffect } from 'react';
 import { getPrismicClient } from '../services/prismic';
 
 import commonStyles from '../styles/common.module.scss';
 import styles from './home.module.scss';
 // eslint-disable-next-line import/order
 import Head from 'next/head';
-
-import {useState, useEffect} from 'react';
 
 interface Post {
   uid?: string;
@@ -26,12 +25,13 @@ interface PostPagination {
 }
 
 interface HomeProps {
+  // eslint-disable-next-line react/no-unused-prop-types
   postsPagination: PostPagination;
 }
 
 // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
-export default function Home(  postsPagination  : HomeProps) {
+export default function Home({ postsPagination }: HomeProps) {
   const [postsApi, setPostsApi] = useState([]);
 
   // useEffect(() => {
@@ -41,25 +41,43 @@ export default function Home(  postsPagination  : HomeProps) {
   //   // console.log(postsPagination);
   // }, []);
 
-  console.log(postsPagination);
+  // console.log(postsPagination);
   // console.log(postsPagination.next_page);
+  // console.log(postsPagination.results.map(post => post.data.title));
 
   return (
     <>
       <Head>
         <title>Desafio CMS</title>
       </Head>
-
-        {/* {postsPagination.results.map(post => (
-          <h1>{post.data.title}</h1>
-        ))} */}
       <main className={styles.container}>
         <div className={styles.posts}>
-          <a href="">
+          {postsPagination.results.map(post => (
+            <a key={post.uid}>
+              <strong>{post.data.title}</strong>
+              <p>{post.data.subtitle}</p>
+              <time>
+                <FiCalendar />
+                {post.first_publication_date}
+                <span>
+                  <FiUser />
+                  {post.data.author}
+                </span>
+              </time>
+            </a>
+          ))}
+          {/* <a>
             <strong>Como utilizar Hooks</strong>
             <p>Pensando em sincronização em vez de ciclos de vida.</p>
-            <time><FiCalendar />12 Mai 2021 <span><FiUser />Rafael Quartaroli</span></time>
-          </a>
+            <time>
+              <FiCalendar />
+              12 Mai 2021{' '}
+              <span>
+                <FiUser />
+                Rafael Quartaroli
+              </span>
+            </time>
+          </a> */}
         </div>
       </main>
     </>
@@ -86,12 +104,11 @@ export const getStaticProps: GetStaticProps = async () => {
         month: 'long',
         year: 'numeric',
       }),
-      data:
-        {
-          title: post.data.title,
-          subtitle: post.data.subtitle,
-          author: post.data.author,
-        },
+      data: {
+        title: post.data.title,
+        subtitle: post.data.subtitle,
+        author: post.data.author,
+      },
     };
   });
 
@@ -100,11 +117,10 @@ export const getStaticProps: GetStaticProps = async () => {
     results: posts,
   };
 
-  // const postHome = { postsPagination: postPagination, };
-
+  console.log(posts);
   console.log(postPagination);
 
   return {
-    props: { postPagination },
+    props: { postsPagination: postPagination },
   };
 };
