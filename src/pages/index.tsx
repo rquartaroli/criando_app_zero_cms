@@ -9,6 +9,9 @@ import styles from './home.module.scss';
 // eslint-disable-next-line import/order
 import Head from 'next/head';
 
+import { format } from 'date-fns';
+import ptBR from 'date-fns/locale/pt-BR';
+
 interface Post {
   uid?: string;
   first_publication_date: string | null;
@@ -90,20 +93,20 @@ export const getStaticProps: GetStaticProps = async () => {
     [Prismic.predicates.at('document.type', 'repeatable')],
     {
       fetch: ['repeatable.title', 'repeatable.subtitle', 'repeatable.author'],
-      pageSize: 20,
+      pageSize: 1,
     }
   );
 
   const posts = postsResponse.results.map(post => {
     return {
       uid: post.uid,
-      first_publication_date: new Date(
-        post.first_publication_date
-      ).toLocaleDateString('pt-BR', {
-        day: '2-digit',
-        month: 'long',
-        year: 'numeric',
-      }),
+      first_publication_date: format(
+        new Date(post.first_publication_date),
+        "dd MMM yyyy",
+        {
+          locale: ptBR,
+        }
+      ),
       data: {
         title: post.data.title,
         subtitle: post.data.subtitle,
@@ -117,8 +120,8 @@ export const getStaticProps: GetStaticProps = async () => {
     results: posts,
   };
 
-  console.log(posts);
-  console.log(postPagination);
+  console.log(postsResponse);
+  // console.log(postPagination);
 
   return {
     props: { postsPagination: postPagination },
