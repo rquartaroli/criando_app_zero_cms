@@ -2,15 +2,14 @@ import { GetStaticProps } from 'next';
 import { FiCalendar, FiUser } from 'react-icons/fi';
 import Prismic from '@prismicio/client';
 import { useState, useEffect } from 'react';
+import { format } from 'date-fns';
+import ptBR from 'date-fns/locale/pt-BR';
 import { getPrismicClient } from '../services/prismic';
 
 import commonStyles from '../styles/common.module.scss';
 import styles from './home.module.scss';
 // eslint-disable-next-line import/order
 import Head from 'next/head';
-
-import { format } from 'date-fns';
-import ptBR from 'date-fns/locale/pt-BR';
 
 interface Post {
   uid?: string;
@@ -35,16 +34,24 @@ interface HomeProps {
 // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 export default function Home({ postsPagination }: HomeProps) {
-  const [postsApi, setPostsApi] = useState([]);
+  const [postsApi, setPostsApi] = useState<PostPagination>(postsPagination);
 
-  // useEffect(() => {
-  //   fetch(postsPagination.next_page)
-  //     .then(response => response.json())
-  //     .then(data => console.log(data))
-  //   // console.log(postsPagination);
-  // }, []);
+  useEffect(() => {
+    fetch(postsPagination.next_page)
+      .then(response => response.json())
+      .then((data: PostPagination) =>
+        setPostsApi({
+          ...data,
+          next_page: data.next_page,
+          results: data.results,
+        })
+      );
+    // console.log(postsPagination);
+  }, []);
 
-  // console.log(postsPagination);
+  // console.log(postsApi);
+  // console.log(postsApi.next_page);
+  // console.log(postsApi.results.map(post => post.data.title));
   // console.log(postsPagination.next_page);
   // console.log(postsPagination.results.map(post => post.data.title));
 
@@ -55,13 +62,15 @@ export default function Home({ postsPagination }: HomeProps) {
       </Head>
       <main className={styles.container}>
         <div className={styles.posts}>
-          {postsPagination.results.map(post => (
+          {postsApi.results.map(post => (
             <a key={post.uid}>
               <strong>{post.data.title}</strong>
               <p>{post.data.subtitle}</p>
               <time>
                 <FiCalendar />
-                {post.first_publication_date}
+                {format(new Date(post.first_publication_date), 'dd MMM yyyy', {
+                  locale: ptBR,
+                })}
                 <span>
                   <FiUser />
                   {post.data.author}
@@ -100,13 +109,7 @@ export const getStaticProps: GetStaticProps = async () => {
   const posts = postsResponse.results.map(post => {
     return {
       uid: post.uid,
-      first_publication_date: format(
-        new Date(post.first_publication_date),
-        "dd MMM yyyy",
-        {
-          locale: ptBR,
-        }
-      ),
+      first_publication_date: post.first_publication_date,
       data: {
         title: post.data.title,
         subtitle: post.data.subtitle,
