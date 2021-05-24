@@ -53,7 +53,40 @@
         margin-bottom: 5rem;
       }
     }
+  }
 
+  hr {
+    opacity: 10%;
+  }
 
+  .navPrevNext {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 3rem;
+    margin-bottom: 5rem;
+
+    div {
+      display: flex;
+      flex-direction: column;
+
+      span {
+        color: var(--heading);
+        font-size: 1.125rem;
+        margin-bottom: 0.50rem;
+      }
+
+      a {
+        color: var(--highlight);
+        font-weight: 600;
+        font-size: 1rem;
+      }
+
+      & + div {
+        a {
+          align-self: flex-end;
+
+        }
+      }
+    }
   }
 }

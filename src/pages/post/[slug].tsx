@@ -92,6 +92,17 @@ export default function Post({ post }: PostProps): JSX.Element {
               </article>
             );
           })}
+          <hr />
+          <div className={styles.navPrevNext}>
+            <div>
+              <span>Como utilizar Hooks</span>
+              <a href="/">Post anterior</a>
+            </div>
+            <div>
+              <span>Criando um app CRA do Zero</span>
+              <a href="/">Próximo Post</a>
+            </div>
+          </div>
         </div>
       </main>
     </>
