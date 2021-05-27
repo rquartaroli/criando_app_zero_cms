@@ -11,13 +11,16 @@ import { format } from 'date-fns';
 import ptBR from 'date-fns/locale/pt-BR';
 
 import { useRouter } from 'next/router';
+import Link from 'next/link';
 import { getPrismicClient } from '../../services/prismic';
 
 import commonStyles from '../../styles/common.module.scss';
 import styles from './post.module.scss';
+import { useUtterances } from '../../services/utterances';
 
 interface Post {
   first_publication_date: string | null;
+  last_publication_date: string | null;
   data: {
     title: string;
     subtitle: string;
@@ -36,10 +39,32 @@ interface Post {
 
 interface PostProps {
   post: Post;
+  navigation: {
+    prevPost: {
+      uid: string;
+      data: {
+        title: string;
+      };
+    }[];
+    nextPost: {
+      uid: string;
+      data: {
+        title: string;
+      };
+    }[];
+  };
+  preview: boolean;
 }
 
-export default function Post({ post }: PostProps): JSX.Element {
+const commentNodeId = 'comments';
+
+export default function Post({
+  post,
+  navigation,
+  preview,
+}: PostProps): JSX.Element {
   const router = useRouter();
+  useUtterances(commentNodeId);
 
   if (router.isFallback) {
     return <h1>Carregando...</h1>;
@@ -54,6 +79,20 @@ export default function Post({ post }: PostProps): JSX.Element {
   }, 0);
 
   const readTime = Math.ceil(totalWords / 200);
+
+  const isPostEdited =
+    post.first_publication_date !== post.last_publication_date;
+
+  let editionDate;
+  if (isPostEdited) {
+    editionDate = format(
+      new Date(post.first_publication_date),
+      "'* editado em' dd MMM yyyy', às' H':'m",
+      {
+        locale: ptBR,
+      }
+    );
+  }
 
   return (
     <>
@@ -79,6 +118,7 @@ export default function Post({ post }: PostProps): JSX.Element {
               {`${readTime} min`}
             </span>
           </time>
+          {isPostEdited && <span>{editionDate}</span>}
 
           {post.data.content.map(content => {
             return (
@@ -94,15 +134,37 @@ export default function Post({ post }: PostProps): JSX.Element {
           })}
           <hr />
           <div className={styles.navPrevNext}>
-            <div>
-              <span>Como utilizar Hooks</span>
-              <a href="/">Post anterior</a>
+            <div className={styles.prev}>
+              {navigation?.prevPost.length > 0 && (
+                <>
+                  <span>{navigation.prevPost[0].data.title}</span>
+                  <Link href={`/post/${navigation.prevPost[0].uid}`}>
+                    <a>Post anterior</a>
+                  </Link>
+                </>
+              )}
             </div>
-            <div>
-              <span>Criando um app CRA do Zero</span>
-              <a href="/">Próximo Post</a>
+
+            <div className={styles.next}>
+              {navigation?.nextPost.length > 0 && (
+                <>
+                  <span>{navigation.nextPost[0].data.title}</span>
+                  <Link href={`/post/${navigation.nextPost[0].uid}`}>
+                    <a>Próximo post</a>
+                  </Link>
+                </>
+              )}
             </div>
           </div>
+          <div id={commentNodeId} />
+
+          {preview && (
+            <aside>
+              <Link href="/api/exit-preview">
+                <a className={commonStyles.preview}>Sair do modo Preview</a>
+              </Link>
+            </aside>
+          )}
         </div>
       </main>
     </>
@@ -129,14 +191,39 @@ export const getStaticPaths: GetStaticPaths = async () => {
   };
 };
 
-export const getStaticProps: GetStaticProps = async ({ params }) => {
+export const getStaticProps: GetStaticProps = async ({
+  params,
+  preview = false,
+  previewData,
+}) => {
   const { slug } = params;
   const prismic = getPrismicClient();
-  const response = await prismic.getByUID('repeatable', String(slug), {});
+  const response = await prismic.getByUID('repeatable', String(slug), {
+    ref: previewData?.ref || null,
+  });
+
+  const prevPost = await prismic.query(
+    [Prismic.Predicates.at('document.type', 'repeatable')],
+    {
+      pageSize: 1,
+      after: response.id,
+      orderings: '[document.first_publication_date desc]',
+    }
+  );
+
+  const nextPost = await prismic.query(
+    [Prismic.Predicates.at('document.type', 'repeatable')],
+    {
+      pageSize: 1,
+      after: response.id,
+      orderings: '[document.first_publication_date]',
+    }
+  );
 
   const post = {
     uid: response.uid,
     first_publication_date: response.first_publication_date,
+    last_publication_date: response.last_publication_date,
     data: {
       title: response.data.title,
       subtitle: response.data.subtitle,
@@ -156,6 +243,11 @@ export const getStaticProps: GetStaticProps = async ({ params }) => {
   return {
     props: {
       post,
+      navigation: {
+        prevPost: prevPost?.results,
+        nextPost: nextPost?.results,
+      },
+      preview,
     },
   };
 };
